@@ -1,0 +1,6 @@
+{
+  "name": "BritConnect AI Customer Churn Intelligence Platform",
+  "description": "Production-grade UK Telecom Churn Intelligence Platform with live Google Sheets ingestion, ML models, SHAP explainability, what-if simulations, retention campaigns, and Gemini AI assistant.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

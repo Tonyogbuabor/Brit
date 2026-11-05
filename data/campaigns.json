@@ -1,0 +1,44 @@
+[
+  {
+    "id": "CMP-2026-Q4-ROLLING",
+    "name": "Q4 Rolling Contract Loyalty Lock-In",
+    "objective": "Convert price-sensitive rolling monthly customers to 12-month fixed terms with 10% discount",
+    "targetCriteria": {
+      "tiers": [
+        "Critical",
+        "High"
+      ],
+      "minMrr": 25
+    },
+    "offerId": "OFFER_LOYALTY_10",
+    "offerName": "10% Retention Loyalty Discount (12M)",
+    "channel": "Outbound Call & SMS",
+    "budgetGbp": 15000,
+    "startDate": "2026-10-01",
+    "endDate": "2026-12-15",
+    "owner": "Sarah Jenkins (Head of Retention)",
+    "createdAt": "2026-11-05T20:17:28.304Z",
+    "holdoutPercentage": 10,
+    "customers": [],
+    "metrics": {
+      "totalTargeted": 350,
+      "controlCount": 35,
+      "treatmentCount": 315,
+      "contactedCount": 280,
+      "acceptedCount": 126,
+      "treatmentChurnRate": 0.142,
+      "controlChurnRate": 0.286,
+      "absoluteUpliftPercentage": 14.4,
+      "upliftConfidenceInterval": [
+        7.8,
+        21
+      ],
+      "estimatedSaves": 45,
+      "revenueProtectedGbp": 18900,
+      "totalSpendGbp": 4200,
+      "costPerSaveGbp": 93.33,
+      "netRoiGbp": 14700,
+      "roiMultiplier": 4.5
+    }
+  }
+]
