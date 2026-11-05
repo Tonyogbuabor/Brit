@@ -24,7 +24,7 @@ export async function fetchHealth(): Promise<{ status: string; snapshotLoaded: b
   return res.json();
 }
 
-export async function fetchSnapshotMeta(): Promise<{ meta: SnapshotMeta; qualityScore: number; status: any }> {
+export async function fetchSnapshotMeta(): Promise<{ meta: SnapshotMeta | null; qualityScore: number; status: any; isInitializing?: boolean }> {
   const res = await fetch('/api/snapshot/meta');
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

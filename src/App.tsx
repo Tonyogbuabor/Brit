@@ -56,23 +56,24 @@ function AppContent() {
     ukNation: 'All',
   });
 
-  // Query snapshot metadata
+  // Query snapshot metadata with automatic polling while initializing
   const { data: metaData, isLoading: metaLoading, error: metaError, refetch: refetchMeta } = useQuery({
     queryKey: ['meta'],
     queryFn: fetchSnapshotMeta,
-    retry: 1,
+    retry: 2,
+    refetchInterval: (query) => (query.state.data?.isInitializing || !query.state.data?.meta ? 1500 : false),
   });
 
-  // Polling refresh status while isRefreshing
+  // Polling refresh status while isRefreshing or while initializing
   const { data: refreshStatus, refetch: refetchStatus } = useQuery({
     queryKey: ['refreshStatus'],
     queryFn: fetchRefreshStatus,
-    refetchInterval: (query) => (query.state.data?.isRefreshing ? 1500 : false),
+    refetchInterval: (query) => (query.state.data?.isRefreshing || metaData?.isInitializing ? 1500 : false),
   });
 
-  // Single-flight refresh mutation
+  // Single-flight refresh mutation (always forces fresh fetch from Google Sheet)
   const refreshMutation = useMutation({
-    mutationFn: (force?: boolean) => triggerRefresh(force),
+    mutationFn: (force: boolean = true) => triggerRefresh(force),
     onSuccess: () => {
       refetchStatus();
     },
@@ -88,8 +89,51 @@ function AppContent() {
 
   const isRefreshing = refreshMutation.isPending || !!refreshStatus?.isRefreshing;
 
+  // Live Ingestion & Model Training Screen while initializing
+  if ((metaData?.isInitializing || (!metaData?.meta && !metaError)) && !metaData?.meta) {
+    const stageMsg = refreshStatus?.message || 'Ingesting live subscriber records from Google Sheet...';
+    const progress = refreshStatus?.stageProgressPercent || 25;
+
+    return (
+      <div className="min-h-screen bg-[#FAF6EA] flex items-center justify-center p-6 text-center select-none">
+        <div className="bg-white border border-[#C9A227]/40 rounded-3xl p-8 max-w-lg w-full shadow-2xl space-y-6 animate-in fade-in duration-300">
+          <div className="w-16 h-16 rounded-2xl bg-[#0F3D2E] text-[#C9A227] flex items-center justify-center mx-auto shadow-md">
+            <RotateCw className="w-8 h-8 animate-spin" />
+          </div>
+
+          <div>
+            <h2 className="font-serif text-2xl font-bold text-[#0F3D2E]">
+              Initializing BritConnect Engine
+            </h2>
+            <p className="text-xs text-[#1B2A22]/70 mt-1.5 font-sans leading-relaxed">
+              Ingesting 5,000 live subscriber records from Google Sheets, enforcing Zero Leakage firewall, training 5-fold cross-validated ML models, and calibrating risk tiers.
+            </p>
+          </div>
+
+          {/* Animated Progress Bar */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-xs font-mono text-[#0F3D2E]">
+              <span className="font-semibold truncate max-w-[320px]">{stageMsg}</span>
+              <span className="font-bold">{progress}%</span>
+            </div>
+            <div className="h-3 w-full bg-[#FAF6EA] rounded-full overflow-hidden p-0.5 border border-[#F1EAD3]">
+              <div
+                className="h-full bg-gradient-to-r from-[#1F7A4D] via-[#C9A227] to-[#1F7A4D] rounded-full transition-all duration-500"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="pt-2 text-[11px] text-[#1B2A22]/60 font-sans border-t border-[#F1EAD3]">
+            Data Source: Primary Sheet ID <span className="font-mono text-[#0F3D2E] font-semibold">1sS3zh9SS8...pVucXU9_E</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Honest Error State with explicit Retry action if data cannot be loaded (never fallback to fake data)
-  if (metaError && !metaData) {
+  if (metaError && !metaData?.meta) {
     return (
       <div className="min-h-screen bg-[#FAF6EA] flex items-center justify-center p-6 text-center">
         <div className="bg-white border-2 border-[#B5483A]/40 rounded-3xl p-8 max-w-lg shadow-xl space-y-4">
@@ -143,7 +187,7 @@ function AppContent() {
           lastRefreshed={metaData?.meta?.timestamp}
           rowCount={metaData?.meta?.rowCount}
           dataQualityScore={metaData?.qualityScore}
-          onTriggerRefresh={(force) => refreshMutation.mutate(force)}
+          onTriggerRefresh={(force) => refreshMutation.mutate(force ?? true)}
           diffToast={diffToast}
           onDismissDiffToast={() => setDiffToast(null)}
         />

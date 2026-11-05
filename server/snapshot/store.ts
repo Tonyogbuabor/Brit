@@ -142,6 +142,7 @@ export class SnapshotStore {
 
       // Stage 2: Clean and Validate
       this.updateStatus('cleaning_validating', 25, `Cleaning ${fetchResult.rawRows.length} rows and enforcing integrity rules...`);
+      await new Promise((r) => setTimeout(r, 10));
       const cleaning = cleanAndValidateDataset(fetchResult.rawRows, fetchResult.headerMapping);
 
       const validRows = cleaning.validActiveRows.concat(cleaning.validChurnedRows);
@@ -151,12 +152,15 @@ export class SnapshotStore {
 
       // Stage 3 & 4: Engineer features & Leakage Audit & Training
       this.updateStatus('leakage_audit', 45, 'Executing Leakage Firewall audit and permutation tests...');
+      await new Promise((r) => setTimeout(r, 10));
       this.updateStatus('training_models', 60, 'Training Logistic Regression, Random Forest and GBDT with 5-fold CV...');
+      await new Promise((r) => setTimeout(r, 10));
 
       const mlResult = trainAndScoreAll(validRows, cleaning.quarantinedRows.length, fetchResult.contentHash);
 
       // Stage 5: Segment with K-Means++
       this.updateStatus('clustering_segments', 75, 'Clustering customer behavioral personas with K-Means++...');
+      await new Promise((r) => setTimeout(r, 10));
       const scoredMap = new Map<string, { churnProbability: number; expectedMrrAtRiskGbp: number }>();
       mlResult.scoredCustomers.forEach((s) =>
         scoredMap.set(s.customerId, {

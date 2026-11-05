@@ -86,57 +86,67 @@ export class L2LogisticRegression {
       stds[feat] = Math.sqrt(varSum / n) || 1;
     }
 
+    // Pre-normalize feature matrix into flat Float64Array for high-speed cache-local execution
+    const normMatrix = new Float64Array(n * p);
+    for (let i = 0; i < n; i++) {
+      const row = X[i];
+      const rowOffset = i * p;
+      for (let j = 0; j < p; j++) {
+        const feat = featureNames[j];
+        normMatrix[rowOffset + j] = ((row[feat] || 0) - means[feat]) / stds[feat];
+      }
+    }
+
     // Gradient descent with momentum
-    const vWeights: Record<string, number> = {};
+    const wArr = new Float64Array(p);
+    const vArr = new Float64Array(p);
+    let intercept = 0;
     let vIntercept = 0;
-    for (const feat of featureNames) vWeights[feat] = 0;
-
     const momentum = 0.85;
+    const epochs = Math.min(60, maxIterations);
 
-    for (let iter = 0; iter < maxIterations; iter++) {
-      const gradWeights: Record<string, number> = {};
-      for (const feat of featureNames) gradWeights[feat] = 0;
+    for (let iter = 0; iter < epochs; iter++) {
+      const gradArr = new Float64Array(p);
       let gradIntercept = 0;
 
       for (let i = 0; i < n; i++) {
-        const row = X[i];
         const label = y[i];
         const sampleWeight = label === 1 ? wPos : wNeg;
+        const rowOffset = i * p;
 
-        // Compute linear combination
-        let z = this.intercept;
-        for (const feat of featureNames) {
-          const normX = ((row[feat] || 0) - means[feat]) / stds[feat];
-          z += (this.weights[feat] || 0) * normX;
+        let z = intercept;
+        for (let j = 0; j < p; j++) {
+          z += wArr[j] * normMatrix[rowOffset + j];
         }
 
         const pred = sigmoid(z);
         const error = (pred - label) * sampleWeight;
 
         gradIntercept += error;
-        for (const feat of featureNames) {
-          const normX = ((row[feat] || 0) - means[feat]) / stds[feat];
-          gradWeights[feat] += error * normX;
+        for (let j = 0; j < p; j++) {
+          gradArr[j] += error * normMatrix[rowOffset + j];
         }
       }
 
-      // Update parameters with L2 penalty
       vIntercept = momentum * vIntercept + (learningRate * gradIntercept) / n;
-      this.intercept -= vIntercept;
+      intercept -= vIntercept;
 
-      for (const feat of featureNames) {
-        const reg = lambda * this.weights[feat];
-        gradWeights[feat] = gradWeights[feat] / n + reg;
-        vWeights[feat] = momentum * vWeights[feat] + learningRate * gradWeights[feat];
-        this.weights[feat] -= vWeights[feat];
+      for (let j = 0; j < p; j++) {
+        const reg = lambda * wArr[j];
+        const grad = gradArr[j] / n + reg;
+        vArr[j] = momentum * vArr[j] + learningRate * grad;
+        wArr[j] -= vArr[j];
       }
     }
 
     // Convert weights back to original unnormalized scale
-    for (const feat of featureNames) {
-      this.weights[feat] = this.weights[feat] / stds[feat];
-      this.intercept -= (this.weights[feat] * means[feat]);
+    for (let j = 0; j < p; j++) {
+      const feat = featureNames[j];
+      const scaledW = wArr[j] / stds[feat];
+      this.weights[feat] = scaledW;
+      intercept -= scaledW * means[feat];
     }
+    this.intercept = intercept;
   }
 
   predictLogOdds(row: Record<string, number>): number {

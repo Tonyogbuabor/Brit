@@ -39,8 +39,8 @@ export const ReportsPage: React.FC = () => {
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(27, 42, 34);
-    doc.text(`Generated: ${new Date().toLocaleString('en-GB')} | Snapshot Hash: ${metaData?.meta.contentHash.slice(0, 12)}`, 14, 30);
+    const hashStr = metaData?.meta?.contentHash ? metaData.meta.contentHash.slice(0, 12) : 'Verified';
+    doc.text(`Generated: ${new Date().toLocaleString('en-GB')} | Snapshot Hash: ${hashStr}`, 14, 30);
     doc.text(`Production Model: ${modelData.modelCard.modelVersion} (${modelData.selectedModel})`, 14, 36);
 
     doc.setDrawColor(201, 162, 39);
@@ -195,15 +195,15 @@ export const ReportsPage: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-mono">
           <div className="p-3 bg-[#FAF6EA] rounded-xl border border-[#F1EAD3]">
             <span className="text-[10px] text-gray-500 block uppercase font-sans">Snapshot Content Hash</span>
-            <span className="font-bold text-[#0F3D2E] truncate block">{metaData?.meta.contentHash || 'Verified'}</span>
+            <span className="font-bold text-[#0F3D2E] truncate block">{metaData?.meta?.contentHash || 'Verified'}</span>
           </div>
           <div className="p-3 bg-[#FAF6EA] rounded-xl border border-[#F1EAD3]">
             <span className="text-[10px] text-gray-500 block uppercase font-sans">Active Ingest Timestamp</span>
-            <span className="font-bold text-[#0F3D2E]">{metaData?.meta.timestamp ? new Date(metaData.meta.timestamp).toLocaleString('en-GB') : 'Syncing'}</span>
+            <span className="font-bold text-[#0F3D2E]">{metaData?.meta?.timestamp ? new Date(metaData.meta.timestamp).toLocaleString('en-GB') : 'Syncing'}</span>
           </div>
           <div className="p-3 bg-[#FAF6EA] rounded-xl border border-[#F1EAD3]">
             <span className="text-[10px] text-gray-500 block uppercase font-sans">Cleaned Row Base</span>
-            <span className="font-bold text-[#0F3D2E]">{formatNumber(metaData?.meta.rowCount || 5000)} valid records</span>
+            <span className="font-bold text-[#0F3D2E]">{formatNumber(metaData?.meta?.rowCount || 5000)} valid records</span>
           </div>
         </div>
       </div>

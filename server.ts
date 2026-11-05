@@ -68,8 +68,16 @@ app.get('/api/snapshot/meta', (req: Request, res: Response) => {
   const snap = snapshotStore.getSnapshot();
   const status = snapshotStore.getStatus();
   if (!snap) {
-    return res.status(503).json({
-      error: { code: 'SNAPSHOT_NOT_READY', message: 'Data snapshot is initializing.', hint: 'Check /api/refresh/status' },
+    if (status.stage === 'failed' && status.error) {
+      return res.status(500).json({
+        error: { code: 'REFRESH_FAILED', message: status.error },
+        status,
+      });
+    }
+    return res.json({
+      isInitializing: true,
+      meta: null,
+      qualityScore: 100,
       status,
     });
   }

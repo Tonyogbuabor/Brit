@@ -89,6 +89,18 @@ export const Header: React.FC<HeaderProps> = ({
             </span>
           </div>
 
+          {/* Open Google Sheet External Link */}
+          <a
+            href="https://docs.google.com/spreadsheets/d/1sS3zh9SS8ptrAE-qg31L1lUNcb_PE6usl0pVucXU9_E/edit"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#F1EAD3] hover:bg-[#FAF6EA] text-[#0F3D2E] transition-colors text-xs font-semibold shadow-xs"
+            title="Open primary live Google Sheet in new tab to edit customer rows"
+          >
+            <span>Open Sheet</span>
+            <span className="text-[10px] text-gray-400 font-normal">↗</span>
+          </a>
+
           {/* AI Assistant Quick Trigger */}
           <button
             onClick={onOpenAiAssistant}
@@ -100,18 +112,19 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {/* Prominent Refresh Button */}
-          <div className="relative">
+          <div className="relative group/refresh">
             <button
-              onClick={() => onTriggerRefresh(false)}
+              onClick={() => onTriggerRefresh(true)}
               disabled={isRefreshing}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all shadow-sm ${
                 isRefreshing
                   ? 'bg-[#F1EAD3] text-[#1B2A22]/50 cursor-not-allowed border border-[#C9A227]/30'
                   : 'bg-[#C9A227] text-[#0F3D2E] hover:bg-[#E4C766] active:scale-[0.98] border border-[#C9A227]/50'
               }`}
+              title="Fetches latest edits from Google Sheet into BritConnect. (The source sheet is read-only and never overwritten)."
             >
               <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#0F3D2E]' : ''}`} />
-              <span>{isRefreshing ? 'Refreshing Model...' : 'Refresh Sheet'}</span>
+              <span>{isRefreshing ? 'Syncing Sheet...' : 'Refresh Sheet'}</span>
             </button>
 
             {/* Sub-label under Refresh button */}
