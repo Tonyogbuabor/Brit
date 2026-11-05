@@ -111,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="hidden sm:inline">AI Assistant</span>
           </button>
 
-          {/* Prominent Refresh Button */}
+          {/* Prominent Sync From Sheet Button */}
           <div className="relative group/refresh">
             <button
               onClick={() => onTriggerRefresh(true)}
@@ -121,20 +121,20 @@ export const Header: React.FC<HeaderProps> = ({
                   ? 'bg-[#F1EAD3] text-[#1B2A22]/50 cursor-not-allowed border border-[#C9A227]/30'
                   : 'bg-[#C9A227] text-[#0F3D2E] hover:bg-[#E4C766] active:scale-[0.98] border border-[#C9A227]/50'
               }`}
-              title="Fetches latest edits from Google Sheet into BritConnect. (The source sheet is read-only and never overwritten)."
+              title="Fetches latest subscriber records from Google Sheet into BritConnect. (The source sheet is read-only and never overwritten)."
             >
               <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#0F3D2E]' : ''}`} />
-              <span>{isRefreshing ? 'Syncing Sheet...' : 'Refresh Sheet'}</span>
+              <span>{isRefreshing ? 'Syncing...' : 'Sync From Sheet'}</span>
             </button>
 
             {/* Sub-label under Refresh button */}
             <div className="text-[10px] text-right text-[#1B2A22]/60 mt-0.5 font-tabular">
               {isRefreshing ? (
                 <span className="text-[#0F3D2E] font-medium animate-pulse truncate max-w-[150px] inline-block">
-                  {refreshStageMessage || 'Syncing...'}
+                  {refreshStageMessage || 'Syncing from Sheet...'}
                 </span>
               ) : (
-                <span>Last: {formattedTime}</span>
+                <span>Synced: {formattedTime}</span>
               )}
             </div>
           </div>

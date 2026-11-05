@@ -19,11 +19,15 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Support running behind reverse proxies (Nginx / Cloud Run)
+app.set('trust proxy', 1);
+
 // Security Headers with Helmet
 app.use(
   helmet({
     contentSecurityPolicy: false, // Vite dev requires inline scripts and styles
     crossOriginEmbedderPolicy: false,
+    frameguard: false, // Allow iframe rendering in AI Studio preview & dashboard
   })
 );
 
@@ -68,14 +72,9 @@ app.get('/api/snapshot/meta', (req: Request, res: Response) => {
   const snap = snapshotStore.getSnapshot();
   const status = snapshotStore.getStatus();
   if (!snap) {
-    if (status.stage === 'failed' && status.error) {
-      return res.status(500).json({
-        error: { code: 'REFRESH_FAILED', message: status.error },
-        status,
-      });
-    }
     return res.json({
-      isInitializing: true,
+      isInitializing: status.isRefreshing || (status.stage !== 'failed' && !status.error),
+      error: status.error,
       meta: null,
       qualityScore: 100,
       status,

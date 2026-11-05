@@ -5,7 +5,9 @@ import { RetentionOffer } from '../shared/types.js';
 dotenv.config();
 
 export const SERVER_CONFIG = {
-  PORT: parseInt(process.env.DEFAULT_APP_PORT || '3000', 10),
+  PORT: process.env.DEFAULT_APP_PORT
+    ? parseInt(process.env.DEFAULT_APP_PORT, 10)
+    : parseInt(process.env.PORT || '3000', 10),
   SPREADSHEET_ID: process.env.SPREADSHEET_ID || '1sS3zh9SS8ptrAE-qg31L1lUNcb_PE6usl0pVucXU9_E',
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
   GOOGLE_SERVICE_ACCOUNT_JSON: process.env.GOOGLE_SERVICE_ACCOUNT_JSON || '',

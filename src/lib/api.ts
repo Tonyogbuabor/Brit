@@ -24,11 +24,11 @@ export async function fetchHealth(): Promise<{ status: string; snapshotLoaded: b
   return res.json();
 }
 
-export async function fetchSnapshotMeta(): Promise<{ meta: SnapshotMeta | null; qualityScore: number; status: any; isInitializing?: boolean }> {
+export async function fetchSnapshotMeta(): Promise<{ meta: SnapshotMeta | null; qualityScore: number; status: any; isInitializing?: boolean; error?: string | null }> {
   const res = await fetch('/api/snapshot/meta');
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err?.error?.message || 'Failed to load snapshot metadata');
+    throw new Error(err?.error?.message || 'Server is initializing connection to primary Google Sheet...');
   }
   return res.json();
 }

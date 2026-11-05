@@ -56,11 +56,14 @@ function AppContent() {
     ukNation: 'All',
   });
 
-  // Query snapshot metadata with automatic polling while initializing
+  const [isManualRetrying, setIsManualRetrying] = useState(false);
+
+  // Query snapshot metadata with robust retry and polling while initializing
   const { data: metaData, isLoading: metaLoading, error: metaError, refetch: refetchMeta } = useQuery({
     queryKey: ['meta'],
     queryFn: fetchSnapshotMeta,
-    retry: 2,
+    retry: 5,
+    retryDelay: (attempt) => Math.min(1000 * Math.pow(2, attempt), 6000),
     refetchInterval: (query) => (query.state.data?.isInitializing || !query.state.data?.meta ? 1500 : false),
   });
 
@@ -68,7 +71,7 @@ function AppContent() {
   const { data: refreshStatus, refetch: refetchStatus } = useQuery({
     queryKey: ['refreshStatus'],
     queryFn: fetchRefreshStatus,
-    refetchInterval: (query) => (query.state.data?.isRefreshing || metaData?.isInitializing ? 1500 : false),
+    refetchInterval: (query) => (query.state.data?.isRefreshing || metaData?.isInitializing || isManualRetrying ? 1500 : false),
   });
 
   // Single-flight refresh mutation (always forces fresh fetch from Google Sheet)
@@ -87,12 +90,26 @@ function AppContent() {
     }
   }, [refreshStatus?.isRefreshing, refreshStatus?.stage]);
 
-  const isRefreshing = refreshMutation.isPending || !!refreshStatus?.isRefreshing;
+  const isRefreshing = refreshMutation.isPending || !!refreshStatus?.isRefreshing || isManualRetrying;
+
+  const handleManualRetry = async () => {
+    setIsManualRetrying(true);
+    try {
+      await refreshMutation.mutateAsync(true);
+      await refetchMeta();
+    } catch (e) {
+      console.error('Manual retry error:', e);
+      // Ensure meta query is refetched to get latest status
+      await refetchMeta();
+    } finally {
+      setIsManualRetrying(false);
+    }
+  };
 
   // Live Ingestion & Model Training Screen while initializing
-  if ((metaData?.isInitializing || (!metaData?.meta && !metaError)) && !metaData?.meta) {
-    const stageMsg = refreshStatus?.message || 'Ingesting live subscriber records from Google Sheet...';
-    const progress = refreshStatus?.stageProgressPercent || 25;
+  if ((metaData?.isInitializing || isManualRetrying || (!metaData?.meta && !metaError)) && !metaData?.meta) {
+    const stageMsg = refreshStatus?.message || (isManualRetrying ? 'Connecting to Google Sheets and re-training models...' : 'Ingesting live subscriber records from Google Sheet...');
+    const progress = refreshStatus?.stageProgressPercent || (isManualRetrying ? 40 : 25);
 
     return (
       <div className="min-h-screen bg-[#FAF6EA] flex items-center justify-center p-6 text-center select-none">
@@ -134,9 +151,11 @@ function AppContent() {
 
   // Honest Error State with explicit Retry action if data cannot be loaded (never fallback to fake data)
   if (metaError && !metaData?.meta) {
+    const errorMsg = metaError instanceof Error ? metaError.message : (metaData as any)?.error || 'Network error or sheet unreachable';
+
     return (
       <div className="min-h-screen bg-[#FAF6EA] flex items-center justify-center p-6 text-center">
-        <div className="bg-white border-2 border-[#B5483A]/40 rounded-3xl p-8 max-w-lg shadow-xl space-y-4">
+        <div className="bg-white border-2 border-[#B5483A]/40 rounded-3xl p-8 max-w-xl shadow-xl space-y-5">
           <div className="w-14 h-14 rounded-2xl bg-red-100 text-[#B5483A] flex items-center justify-center mx-auto">
             <AlertTriangle className="w-7 h-7" />
           </div>
@@ -147,20 +166,44 @@ function AppContent() {
             BritConnect requires live customer data from Google Sheets to guarantee reproducibility.
             The server encountered an issue connecting to the primary spreadsheet.
           </p>
-          <div className="p-3 bg-red-50 text-red-900 font-mono text-xs rounded-xl border border-red-200 text-left overflow-x-auto">
-            {metaError instanceof Error ? metaError.message : 'Network error or sheet unreachable'}
+
+          <div className="p-3 bg-red-50 text-red-900 font-mono text-xs rounded-xl border border-red-200 text-left overflow-x-auto whitespace-pre-wrap">
+            {errorMsg}
           </div>
-          <div className="pt-2">
+
+          {/* Explanation on Data Direction */}
+          <div className="p-3 bg-[#FAF6EA] rounded-xl border border-[#F1EAD3] text-left text-xs space-y-1.5 text-[#1B2A22]/80">
+            <div className="font-semibold text-[#0F3D2E] flex items-center gap-1.5">
+              <span>ℹ️ Google Sheets Integration Note:</span>
+            </div>
+            <p className="text-[11px] leading-relaxed">
+              BritConnect reads <strong>from</strong> the Google Sheet into the dashboard. To protect your raw billing records, BritConnect is read-only and does not modify the source Google Sheet. Any updates or changes you make in Google Sheets sync directly into BritConnect when you click Sync/Retry below.
+            </p>
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
             <button
-              onClick={() => {
-                refreshMutation.mutate(true);
-                refetchMeta();
-              }}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[#0F3D2E] text-[#FAF6EA] hover:bg-[#1F7A4D] text-xs font-bold shadow-md transition-all"
+              onClick={handleManualRetry}
+              disabled={isManualRetrying}
+              className={`inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold shadow-md transition-all ${
+                isManualRetrying
+                  ? 'bg-[#0F3D2E]/70 text-white cursor-wait'
+                  : 'bg-[#0F3D2E] text-[#FAF6EA] hover:bg-[#1F7A4D]'
+              }`}
             >
-              <RotateCw className="w-4 h-4 text-[#C9A227]" />
-              <span>Retry Connection Now</span>
+              <RotateCw className={`w-4 h-4 text-[#C9A227] ${isManualRetrying ? 'animate-spin' : ''}`} />
+              <span>{isManualRetrying ? 'Syncing Sheet & Re-training ML...' : 'Retry Connection Now'}</span>
             </button>
+
+            <a
+              href="https://docs.google.com/spreadsheets/d/1sS3zh9SS8ptrAE-qg31L1lUNcb_PE6usl0pVucXU9_E/edit"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-[#0F3D2E]/20 text-[#0F3D2E] hover:bg-[#FAF6EA] text-xs font-semibold transition-all"
+            >
+              <span>Open Primary Sheet</span>
+              <span className="text-[11px]">↗</span>
+            </a>
           </div>
         </div>
       </div>
